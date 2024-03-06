@@ -85,4 +85,5 @@ while True:
     try:
         main()
     except ConnectionResetError:
+        time.sleep(300)
         continue
