@@ -4,24 +4,28 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
+from datetime import datetime
+import traceback
 import os
-import time
 
 # Main
 def login_to_facebook(driver):
+    driver.get("https://m.facebook.com/login")
     driver.find_element(By.NAME, "email").send_keys(os.environ.get("EMAIL"))
     driver.find_element(By.NAME, "pass").send_keys(os.environ.get("PASSWORD"))
     driver.find_element(By.NAME,"login").click()
     page_changed = EC.presence_of_element_located((By.NAME, 'next'))
     WebDriverWait(driver, 5).until(page_changed)
     
-def get_driver():
+def get_driver(is_headless):
     option = Options()
     option.add_argument("--disable-infobars")
     option.add_argument("--disable-extensions")
     option.add_experimental_option(
         "prefs", {"profile.default_content_setting_values.notifications": 2}
     )
+    if (is_headless == 'true'):
+        option.add_argument("--headless=new")
     return webdriver.Chrome(options=option)
 
 def poke_target(driver, target_name):
@@ -42,24 +46,26 @@ def poke_target(driver, target_name):
         return False
 
 def main():
-    # Config
     load_dotenv()
-    driver = get_driver()
+    driver = get_driver(os.environ.get("IS_HEADLESS"))
+    target_names = os.environ.get("TARGET_NAMES").split(",")
     
-    # Input
-    target_names = ["Daffainfo", "Stefanus Albert", "Budi Rozali"]
-    
-    driver.get("https://m.facebook.com")
-    login_to_facebook(driver);
     try:
+        login_to_facebook(driver);
         while True:
             driver.get("https://m.facebook.com/pokes/")
             for target_name in target_names:
                 poke_target(driver, target_name)
             alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
             WebDriverWait(driver, 300).until(alert_shown)
-    except Exception as e:
+    except KeyboardInterrupt:
+        print("Keyboard interrupt")
+    except:
+        errorFile = open('error.log', 'w')
+        errorFile.write(datetime.now().strftime("%A, %d-%m-%y %H:%M:%S") + '\n')
+        errorFile.write(traceback.format_exc())
+        errorFile.close()
+    finally:
         driver.quit()
-        print(e)
 
 main()
