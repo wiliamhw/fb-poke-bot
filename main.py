@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
 from datetime import datetime
 import traceback
+import logging
 import os
 
 # Main
@@ -16,7 +17,14 @@ def login_to_facebook(driver):
     driver.find_element(By.NAME,"login").click()
     page_changed = EC.presence_of_element_located((By.NAME, 'next'))
     WebDriverWait(driver, 5).until(page_changed)
-    
+
+def set_logger():
+    logging.basicConfig(
+        filename='poke.log', level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+  
 def get_driver(is_headless):
     option = Options()
     option.add_argument("--disable-infobars")
@@ -37,6 +45,7 @@ def poke_target(driver, target_name):
 
         poke_button = parent_container.find_element(By.XPATH, "//span[contains(text(), 'Poke Back')]")
         poke_button.click()
+        logging.info("Poke " + target_name)
         
         disabled_button = EC.text_to_be_present_in_element_attribute(parent_container, 'aria-disabled', 'true')
         WebDriverWait(driver, 5).until(disabled_button)
@@ -47,9 +56,10 @@ def poke_target(driver, target_name):
 
 def main():
     load_dotenv()
+    set_logger()
     driver = get_driver(os.environ.get("IS_HEADLESS"))
     target_names = os.environ.get("TARGET_NAMES").split(",")
-    
+
     try:
         login_to_facebook(driver);
         while True:
@@ -57,7 +67,7 @@ def main():
             for target_name in target_names:
                 poke_target(driver, target_name)
             alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
-            WebDriverWait(driver, 300).until(alert_shown)
+            WebDriverWait(driver, 60).until(alert_shown)
     except KeyboardInterrupt:
         print("Keyboard interrupt")
     except:
