@@ -8,6 +8,7 @@ from datetime import datetime
 import traceback
 import logging
 import os
+import time
 
 # Main
 def login_to_facebook(driver):
@@ -55,6 +56,7 @@ def poke_target(driver, target_name):
         return False
 
 def main():
+    poke_delay = 30
     load_dotenv()
     set_logger()
     driver = get_driver(os.environ.get("IS_HEADLESS"))
@@ -68,6 +70,7 @@ def main():
                 poke_target(driver, target_name)
             alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
             WebDriverWait(driver, 60).until(alert_shown)
+            time.sleep(poke_delay)
     except KeyboardInterrupt:
         print("Keyboard interrupt")
     except:
@@ -78,4 +81,8 @@ def main():
     finally:
         driver.quit()
 
-main()
+while True:
+    try:
+        main()
+    except ConnectionResetError:
+        continue
