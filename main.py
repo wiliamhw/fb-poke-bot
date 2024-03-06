@@ -1,26 +1,65 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.options import Options
 from dotenv import load_dotenv
 import os
 import time
-import pickle
 
-load_dotenv()
-browser = webdriver.Chrome()
-cookie_file = "cookies.pkl"
+# Main
+def login_to_facebook(driver):
+    driver.find_element(By.NAME, "email").send_keys(os.environ.get("EMAIL"))
+    driver.find_element(By.NAME, "pass").send_keys(os.environ.get("PASSWORD"))
+    driver.find_element(By.NAME,"login").click()
+    page_changed = EC.presence_of_element_located((By.NAME, 'next'))
+    WebDriverWait(driver, 5).until(page_changed)
+    
+def get_driver():
+    option = Options()
+    option.add_argument("--disable-infobars")
+    option.add_argument("--disable-extensions")
+    option.add_experimental_option(
+        "prefs", {"profile.default_content_setting_values.notifications": 2}
+    )
+    return webdriver.Chrome(options=option)
 
-def login_to_facebook ():
-    if os.path.exists("cookies.pkl"):
-        cookies = pickle.load(open("cookies.pkl", "rb"))
-        for cookie in cookies:
-            browser.add_cookie(cookie)
-        return
-    browser.get("https://m.facebook.com/login")
-    browser.find_element(By.NAME, "email").send_keys(os.environ.get("EMAIL"))
-    browser.find_element(By.NAME, "pass").send_keys(os.environ.get("PASSWORD"))
-    browser.find_element(By.NAME,"login").click()
-    pickle.dump(browser.get_cookies(), open("cookies.pkl", "wb"))
+def poke_target(driver, target_name):
+    try:
+        name_link = driver.find_element(By.LINK_TEXT, target_name)
+        parent_container = name_link.find_element(By.XPATH, "." + ("/.." * 7))
+        if (parent_container.get_attribute('aria-disabled') != None):
+            return False
 
-login_to_facebook();
-time.sleep(300)
-browser.quit()
+        poke_button = parent_container.find_element(By.XPATH, "//span[contains(text(), 'Poke Back')]")
+        poke_button.click()
+        
+        disabled_button = EC.text_to_be_present_in_element_attribute(parent_container, 'aria-disabled', 'true')
+        WebDriverWait(driver, 5).until(disabled_button)
+        
+        return True
+    except:
+        return False
+
+def main():
+    # Config
+    load_dotenv()
+    driver = get_driver()
+    
+    # Input
+    target_names = ["Daffainfo", "Stefanus Albert", "Budi Rozali"]
+    
+    driver.get("https://m.facebook.com")
+    login_to_facebook(driver);
+    try:
+        while True:
+            driver.get("https://m.facebook.com/pokes/")
+            for target_name in target_names:
+                poke_target(driver, target_name)
+            alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
+            WebDriverWait(driver, 300).until(alert_shown)
+    except Exception as e:
+        driver.quit()
+        print(e)
+
+main()
