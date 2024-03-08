@@ -68,13 +68,18 @@ def main():
             driver.get("https://m.facebook.com/pokes/")
             for target_name in target_names:
                 poke_target(driver, target_name)
-            alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
-            WebDriverWait(driver, 60).until(alert_shown)
+                
+            try:
+                alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
+                WebDriverWait(driver, 60).until(alert_shown)
+            except:
+                None
+                
             time.sleep(poke_delay)
     except KeyboardInterrupt:
         print("Keyboard interrupt")
     except:
-        errorFile = open('error.log', 'w')
+        errorFile = open('error.log', 'a')
         errorFile.write(datetime.now().strftime("%A, %d-%m-%y %H:%M:%S") + '\n')
         errorFile.write(traceback.format_exc())
         errorFile.close()
