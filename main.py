@@ -71,7 +71,7 @@ def main():
                 
             try:
                 alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
-                WebDriverWait(driver, 60).until(alert_shown)
+                WebDriverWait(driver, 300).until(alert_shown)
             except:
                 None
                 
