@@ -60,7 +60,7 @@ def main():
     set_logger()
     driver = get_driver(os.environ.get("IS_HEADLESS", False))
     target_names = os.environ.get("TARGET_NAMES").split(",")
-    poke_delay = os.environ.get("POKE_DELAY_IN_SECONDS", 30)
+    poke_delay = int(os.environ.get("POKE_DELAY_IN_SECONDS", 30))
 
     try:
         login_to_facebook(driver);
