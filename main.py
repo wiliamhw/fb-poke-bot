@@ -56,13 +56,14 @@ def poke_target(driver, target_name):
         return False
 
 def blocked_dialog_exists():
-    blocked_dialog = driver.find_element(By.XPATH, "//div[@role='dialog'][@aria-labelled-by=':r24:']")
-    if (blocked_dialog == None):
+    try:
+        blocked_dialog = driver.find_element(By.XPATH, "//div[@role='dialog'][@aria-labelled-by=':r24:']")
+        
+        blocked_text = blocked_dialog.find_element(By.XPATH, "//span[contains(text(), 'You\'re Temporarily Blocked')]")
+        
+        return blocked_text != None
+    except:
         return False
-    
-    blocked_text = blocked_dialog.find_element(By.XPATH, "//span[contains(text(), 'You\'re Temporarily Blocked')]")
-    
-    return blocked_text != None
 
 class BlockedByFB(Exception):
     pass
@@ -81,7 +82,7 @@ def main():
             login_to_facebook(driver);
             while True:
                 driver.get("https://m.facebook.com/pokes/")
-                if (blocked_dialog_exists):
+                if (blocked_dialog_exists()):
                     raise BlockedByFB("Temporarily Blocked by FB")
                 
                 for target_name in target_names:
