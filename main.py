@@ -55,41 +55,53 @@ def poke_target(driver, target_name):
     except:
         return False
 
+def blocked_dialog_exists():
+    blocked_dialog = driver.find_element(By.XPATH, "//div[@role='dialog'][@aria-labelled-by=':r24:']")
+    if (blocked_dialog == None):
+        return False
+    
+    blocked_text = blocked_dialog.find_element(By.XPATH, "//span[contains(text(), 'You\'re Temporarily Blocked')]")
+    
+    return blocked_text != None
+
+class BlockedByFB(Exception):
+    pass
+
 def main():
     load_dotenv()
     set_logger()
-    driver = get_driver(os.environ.get("IS_HEADLESS", False))
     target_names = os.environ.get("TARGET_NAMES").split(",")
     poke_delay = int(os.environ.get("POKE_DELAY_IN_SECONDS", 30))
     poke_alert_timeout = int(os.environ.get("POKE_ALERT_TIMEOUT", 300))
-
-    try:
-        login_to_facebook(driver);
-        while True:
-            driver.get("https://m.facebook.com/pokes/")
-            for target_name in target_names:
-                poke_target(driver, target_name)
+    restart_able = True
+    
+    while (restart_able):
+        try:
+            driver = get_driver(os.environ.get("IS_HEADLESS", False))
+            login_to_facebook(driver);
+            while True:
+                driver.get("https://m.facebook.com/pokes/")
+                if (blocked_dialog_exists):
+                    raise BlockedByFB("Temporarily Blocked by FB")
                 
-            try:
-                alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
-                WebDriverWait(driver, poke_alert_timeout).until(alert_shown)
-            except:
-                None
-                
-            time.sleep(poke_delay)
-    except KeyboardInterrupt:
-        print("Keyboard interrupt")
-    except:
-        errorFile = open('error.log', 'a')
-        errorFile.write(datetime.now().strftime("%A, %d-%m-%y %H:%M:%S") + '\n')
-        errorFile.write(traceback.format_exc())
-        errorFile.close()
-    finally:
-        driver.quit()
+                for target_name in target_names:
+                    poke_target(driver, target_name)
+                    
+                try:
+                    alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
+                    WebDriverWait(driver, poke_alert_timeout).until(alert_shown)
+                except:
+                    None
+                    
+                time.sleep(poke_delay)
+        except Exception as ex:
+            if (ex.__class__.__name__ in ['KeyboardInterrupt', 'BlockedByFB']):
+                restart_able = False
+            errorFile = open('error.log', 'a')
+            errorFile.write(datetime.now().strftime("%A, %d-%m-%y %H:%M:%S") + '\n')
+            errorFile.write(traceback.format_exc())
+            errorFile.close()
+        finally:
+            driver.quit()
 
-while True:
-    try:
-        main()
-    except ConnectionResetError:
-        time.sleep(300)
-        continue
+main()
