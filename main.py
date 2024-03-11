@@ -61,6 +61,7 @@ def main():
     driver = get_driver(os.environ.get("IS_HEADLESS", False))
     target_names = os.environ.get("TARGET_NAMES").split(",")
     poke_delay = int(os.environ.get("POKE_DELAY_IN_SECONDS", 30))
+    poke_alert_timeout = int(os.environ.get("POKE_ALERT_TIMEOUT", 300))
 
     try:
         login_to_facebook(driver);
@@ -71,7 +72,7 @@ def main():
                 
             try:
                 alert_shown = EC.presence_of_element_located((By.XPATH, "//div[@role='alert'][contains(text(), 'poked you.')]"))
-                WebDriverWait(driver, 300).until(alert_shown)
+                WebDriverWait(driver, poke_alert_timeout).until(alert_shown)
             except:
                 None
                 
